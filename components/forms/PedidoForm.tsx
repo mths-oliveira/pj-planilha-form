@@ -35,13 +35,13 @@ export function PedidoForm({
     numeroDoOrcamento,
   } = useNumeroDoOrcamento();
   const initialState: DadosDoOrcamentoForm = {
-    numeroDoOrcamento: 0,
     data: new Date().toLocaleDateString("pt-BR"),
     cliente: null,
     representante: null,
+    numeroDoOrcamento: 1,
+    numeroDeParcelas: 1,
     taxaDeFrente: 0,
     outrasDespesas: 0,
-    numeroDeParcelas: 0,
     formaDePagamento: "",
     prazos: "",
     vencimentos: "",
@@ -93,6 +93,7 @@ export function PedidoForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
+      cache: "no-store",
     });
     if (response.ok) {
       resetForm();
@@ -108,7 +109,7 @@ export function PedidoForm({
   }
 
   function gerarPrazo(parcelas: number, intervalo: number) {
-    if (!parcelas) return intervalo === 30 ? "30 Dias" : "À Vista";
+    if (parcelas <= 1) return intervalo === 30 ? "30 Dias" : "À Vista";
     let prazo = "";
     for (let i = 1; i <= parcelas; i++) {
       const dia = intervalo * i;
@@ -204,12 +205,14 @@ export function PedidoForm({
       <div className="grid grid-cols-2 gap-3">
         <Input
           label="Número do Orçamento"
+          min={1}
           variant="number"
           value={form.numeroDoOrcamento !== 0 ? form.numeroDoOrcamento : ""}
           onChange={(e) => atualizarNumeroDoOrcamento(e.target.value)}
           className="el-focus"
         />
         <Input
+          min={1}
           label="Número de Parcelas"
           variant="number"
           value={form.numeroDeParcelas !== 0 ? form.numeroDeParcelas : ""}

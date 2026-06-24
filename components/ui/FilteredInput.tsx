@@ -1,5 +1,6 @@
 "use client";
 
+import { normalize } from "@/lib/normalize";
 import { useState, useEffect } from "react";
 
 interface FilteredInputProps<T extends { id: string }> {
@@ -36,7 +37,7 @@ export function FilteredInput<T extends { id: string }>({
   }, [value]);
 
   const filtered = items.filter((item) =>
-    String(item[filterKey]).toLowerCase().includes(query.toLowerCase()),
+    normalize(String(item[filterKey])).includes(normalize(query)),
   );
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {

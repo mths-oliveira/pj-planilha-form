@@ -1,5 +1,6 @@
 "use client";
 
+import { normalize } from "@/lib/normalize";
 import { Produto } from "@/types/produto";
 import { useState, useRef, useEffect } from "react";
 
@@ -39,8 +40,8 @@ export function ProductSelector({
   const filtered = produtos.filter(
     (p) =>
       !selecionados.some((s) => s.produto.ref === p.ref) &&
-      (p.descricao.toLowerCase().includes(query.toLowerCase()) ||
-        p.ref.toLowerCase().includes(query.toLowerCase())),
+      (normalize(p.descricao).includes(normalize(query)) ||
+        normalize(p.ref).includes(normalize(query))),
   );
 
   function handleSelect(produto: Produto) {
