@@ -254,7 +254,14 @@ export function PedidoForm({
 
       <SelectOrTextInput
         label="Forma de Pagamento"
-        options={["PIX", "Dinheiro", "Crédito", "Débito", "Cheque"]}
+        options={[
+          "PIX",
+          "Dinheiro",
+          "Crédito",
+          "Débito",
+          "Cheque",
+          "Boleto Bancário",
+        ]}
         value={form.formaDePagamento}
         onSelect={(value) => {
           setField("formaDePagamento", value);
