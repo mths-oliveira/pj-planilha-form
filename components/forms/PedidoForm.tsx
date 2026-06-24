@@ -126,24 +126,23 @@ export function PedidoForm({
   ];
 
   function gerarVencimentos(prazosString: string): string {
-    // 1. Divide a string de prazos em um array de números
+    const hoje = new Date().toLocaleDateString("pt-BR");
+    if (!prazosString || prazosString.trim() === "") return hoje;
+
     const prazos = prazosString.split("/").map(Number);
 
-    // 2. Mapeia cada prazo para sua respectiva data de vencimento
     const vencimentos = prazos.map((prazo) => {
-      // Sempre criamos uma nova instância baseada na data atual
+      if (isNaN(prazo)) return hoje;
+      if (prazo === 0) return hoje;
+
       const dataVencimento = new Date();
 
       if (prazo % 30 === 0) {
-        // Se for múltiplo de 30, adiciona a quantidade correspondente em meses
-        const mesesAdicionais = prazo / 30;
-        dataVencimento.setMonth(dataVencimento.getMonth() + mesesAdicionais);
+        dataVencimento.setMonth(dataVencimento.getMonth() + prazo / 30);
       } else {
-        // Se não for múltiplo de 30, adiciona a quantidade exata em dias
         dataVencimento.setDate(dataVencimento.getDate() + prazo);
       }
 
-      // 3. Retorna a data formatada no padrão brasileiro
       return dataVencimento.toLocaleDateString("pt-BR");
     });
 
