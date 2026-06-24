@@ -255,12 +255,12 @@ export function PedidoForm({
       <SelectOrTextInput
         label="Forma de Pagamento"
         options={[
-          "PIX",
-          "Dinheiro",
+          "Boleto Bancário",
           "Crédito",
+          "Dinheiro",
           "Débito",
           "Cheque",
-          "Boleto Bancário",
+          "PIX",
         ]}
         value={form.formaDePagamento}
         onSelect={(value) => {
