@@ -109,7 +109,7 @@ export function PedidoForm({
   }
 
   function gerarPrazo(parcelas: number, intervalo: number) {
-    if (parcelas <= 1) return intervalo === 30 ? "30 Dias" : "À Vista";
+    if (parcelas <= 1) return intervalo === 30 ? "30" : "À Vista";
     let prazo = "";
     for (let i = 1; i <= parcelas; i++) {
       const dia = intervalo * i;
