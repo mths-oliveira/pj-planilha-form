@@ -29,7 +29,6 @@ export function PedidoForm({
   representantes,
   produtos,
 }: PedidoFormProps) {
-  const [formKey, setFormKey] = useState(0);
   const {
     atualizarNumeroDoOrcamento,
     incrementarNumeroDoOrcamento,
@@ -99,7 +98,6 @@ export function PedidoForm({
     if (response.ok) {
       resetForm();
       incrementarNumeroDoOrcamento();
-      setFormKey((prev) => prev + 1); // ← força remontagem de tudo
     }
   };
 
@@ -153,7 +151,6 @@ export function PedidoForm({
     <div
       className="flex flex-col max-w-lg mx-auto gap-2 py-12"
       onKeyDown={handleKeyDown}
-      key={formKey}
     >
       <FilteredInput<Cliente>
         items={clientes}

@@ -142,8 +142,6 @@ export async function salvarOrcamentoNaPlanilha(
     { range: `${abaNome}!E28`, values: [[orcamento.outrasDespesas]] },
   ];
 
-  console.log({ data, orcamento });
-
   try {
     // 4. Executar a atualização em lote (batchUpdate)
     const response = await sheets.spreadsheets.values.batchUpdate({
