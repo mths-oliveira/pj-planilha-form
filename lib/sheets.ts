@@ -18,13 +18,19 @@ function createGoogleClient() {
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
       range,
     });
-
     return response.data.values ?? [];
   }
 
-  return {
-    getByRange,
-  };
+  async function setByRange(range: string, value: any) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [[value]] },
+    });
+  }
+
+  return { getByRange, setByRange };
 }
 
 export async function getClientes(): Promise<Cliente[]> {
@@ -93,8 +99,8 @@ type DadosDoOrcamentoPlanilha = Omit<DadosDoOrcamentoNoSistema, "produtos"> & {
 export async function salvarOrcamentoNaPlanilha(
   orcamento: DadosDoOrcamentoPlanilha,
 ) {
-  const abaNome = "ORÇAMENTO";
-  const spreadsheetId = "1WkelL4E6XpOzxgvEIMTPwRJTCqsh7TwW5drjSsYwO3o";
+  const abaNome = "ORCAMENTO";
+  const spreadsheetId = "1lX80EtT9R1iGA6FyNvlA5g1pCQs_LRc-Tg1W_4qr01A";
 
   const auth = new google.auth.GoogleAuth({
     credentials: {
@@ -106,49 +112,41 @@ export async function salvarOrcamentoNaPlanilha(
 
   const sheets = google.sheets({ version: "v4", auth });
 
-  // 2. Preparar os dados dos produtos (A13:C22)
-  // Criamos uma matriz de 10 linhas vazias inicialmente
   const linhasProdutos = Array.from({ length: 10 }, () => ["", "", ""]);
 
-  // Preenchemos com os produtos recebidos (limitado a 10 para não estourar o layout A13:A22)
   orcamento.produtos.slice(0, 10).forEach((produto, index) => {
-    linhasProdutos[index][0] = produto.ref || ""; // Coluna A (Código)
-    // Se precisar da descrição na coluna B, adicione aqui. Ex: linhasProdutos[index][1] = produto.nome || "";
-    linhasProdutos[index][2] = String(produto.quantidade || 1); // Coluna C (Quantidade)
+    linhasProdutos[index][0] = produto.ref || "";
+    linhasProdutos[index][2] = String(
+      produto.quantidade > 0 ? produto.quantidade : 1,
+    );
   });
 
-  // 3. Mapear cada dado para sua respectiva célula/intervalo
-  // O formato do range deve ser: "NomeDaAba!Celula"
   const data = [
     { range: `${abaNome}!E5`, values: [[orcamento.data]] },
     { range: `${abaNome}!E6`, values: [[orcamento.numeroDoOrcamento]] },
-    {
-      range: `${abaNome}!E7`,
-      values: [[orcamento.cliente?.id || orcamento.cliente]],
-    }, // Ajuste conforme a estrutura do seu objeto Cliente
-    {
-      range: `${abaNome}!E8`,
-      values: [[orcamento.representante?.id || orcamento.representante]],
-    },
+    { range: `${abaNome}!E7`, values: [[orcamento.cliente?.id || ""]] },
+    { range: `${abaNome}!E8`, values: [[orcamento.representante?.id || ""]] },
 
-    // Bloco de produtos (Atualiza de A13 até C22 de uma vez só)
     { range: `${abaNome}!A13:C22`, values: linhasProdutos },
 
-    { range: `${abaNome}!B25`, values: [[orcamento.prazos]] },
-    { range: `${abaNome}!B26`, values: [[orcamento.vencimentos]] }, // Vencimentos (caso mude dinamicamente, insira aqui)
-    { range: `${abaNome}!B28`, values: [[orcamento.formaDePagamento]] },
-    { range: `${abaNome}!E26`, values: [[orcamento.numeroDeParcelas]] },
-    { range: `${abaNome}!E27`, values: [[orcamento.taxaDeFrente]] }, // Nota: Verifique se o nome na interface é taxaDeFrente ou taxaDeFrete
-    { range: `${abaNome}!E28`, values: [[orcamento.outrasDespesas]] },
+    { range: `${abaNome}!B25`, values: [[orcamento.numeroDeParcelas]] },
+    { range: `${abaNome}!B26`, values: [[orcamento.prazos]] },
+    { range: `${abaNome}!B27`, values: [[orcamento.vencimentos]] },
+    { range: `${abaNome}!B29`, values: [[orcamento.formaDePagamento]] },
+    {
+      range: `${abaNome}!E26`,
+      values: [[orcamento.desconto ? `${orcamento.desconto}%` : ""]],
+    },
+    { range: `${abaNome}!E28`, values: [[orcamento.taxaDeFrente]] },
+    { range: `${abaNome}!E29`, values: [[orcamento.outrasDespesas]] },
   ];
 
   try {
-    // 4. Executar a atualização em lote (batchUpdate)
     const response = await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId,
       requestBody: {
-        valueInputOption: "USER_ENTERED", // Permite que o Google Planilhas interprete números e datas corretamente
-        data: data,
+        valueInputOption: "USER_ENTERED",
+        data,
       },
     });
 
@@ -158,4 +156,16 @@ export async function salvarOrcamentoNaPlanilha(
     console.error("Erro ao salvar orçamento na planilha:", error);
     throw error;
   }
+}
+
+export async function getNumeroDoOrcamento(): Promise<number> {
+  const client = createGoogleClient();
+  const rows = await client.getByRange("'ORCAMENTO'!E6");
+  return Number(rows[0]?.[0] || 1);
+}
+export async function atualizarNumeroDoOrcamento(
+  numero: number,
+): Promise<void> {
+  const client = createGoogleClient();
+  await client.setByRange("'ORCAMENTO'!E6", numero);
 }

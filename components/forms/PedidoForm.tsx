@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FilteredInput } from "@/components/ui/FilteredInput";
 import { Cliente, DadosDoOrcamentoNoSistema, Representante } from "@/types";
-import { useNumeroDoOrcamento } from "@/hooks/useNumeroDoOrcamento";
 import { Input } from "../ui/input";
 import { SelectOrTextInput } from "../ui/selectOrTextInput";
 import { ProductSelector } from "../ui/ProductSelector";
 import { Produto } from "@/types/produto";
-import { ProdutoSelecionado, salvarOrcamentoNaPlanilha } from "@/lib/sheets";
+import { ProdutoSelecionado } from "@/lib/sheets";
+import { convertToNumber } from "@/lib/convertToNumber";
+
 interface PedidoFormProps {
   clientes: Cliente[];
   representantes: Representante[];
   produtos: Produto[];
+  numeroDoOrcamento: number;
 }
 
 type DadosDoOrcamentoForm = Omit<
@@ -28,17 +30,13 @@ export function PedidoForm({
   clientes,
   representantes,
   produtos,
+  numeroDoOrcamento,
 }: PedidoFormProps) {
-  const {
-    atualizarNumeroDoOrcamento,
-    incrementarNumeroDoOrcamento,
-    numeroDoOrcamento,
-  } = useNumeroDoOrcamento();
   const initialState: DadosDoOrcamentoForm = {
     data: new Date().toLocaleDateString("pt-BR"),
     cliente: null,
     representante: null,
-    numeroDoOrcamento: 1,
+    numeroDoOrcamento,
     numeroDeParcelas: 1,
     taxaDeFrente: 0,
     outrasDespesas: 0,
@@ -46,16 +44,34 @@ export function PedidoForm({
     prazos: "",
     vencimentos: "",
     produtos: [],
+    desconto: 0,
   };
   const [form, setForm] = useState<DadosDoOrcamentoForm>(initialState);
   const [refs, setRefs] = useState<HTMLElement[]>([]);
+  const descontoRef = useRef<HTMLInputElement>(null);
+
+  // foca o desconto quando À Vista for selecionado
+  useEffect(() => {
+    if (form.prazos === "À Vista") {
+      setTimeout(() => descontoRef.current?.focus(), 50);
+    }
+  }, [form.prazos]);
 
   useEffect(() => {
-    const refs = Array.from<HTMLElement>(
-      document.querySelectorAll(".el-focus"),
+    refs.length = 0;
+    setRefs(() =>
+      Array.from(document.querySelectorAll<HTMLElement>(".el-focus")),
     );
-    setRefs(refs);
-  }, []);
+  }, [form.prazos]);
+
+  async function handleNumeroDoOrcamentoChange(valor: number) {
+    setField("numeroDoOrcamento", valor);
+    await fetch("/api/numero-orcamento", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numero: valor }),
+    });
+  }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter" && e.key !== "Tab") return;
@@ -64,17 +80,24 @@ export function PedidoForm({
       (e.target as HTMLElement).closest("[data-ignore-enter]")
     )
       return;
+
     e.preventDefault();
 
-    const currentIndex = refs.indexOf(document.activeElement as any);
+    // lê os elementos no momento do evento — sempre atualizado
+    const elements = Array.from(
+      document.querySelectorAll<HTMLElement>(".el-focus"),
+    );
+
+    const currentIndex = elements.indexOf(
+      document.activeElement as HTMLElement,
+    );
     if (currentIndex === -1) return;
-    if (currentIndex === refs.length - 1) return refs[currentIndex].click();
-    const ref = refs[currentIndex + 1];
-    ref.focus({ preventScroll: true });
-    ref.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    if (currentIndex === elements.length - 1)
+      return elements[currentIndex].click();
+
+    const next = elements[currentIndex + 1];
+    next.focus({ preventScroll: true });
+    next.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function setField<K extends keyof DadosDoOrcamentoForm>(
@@ -96,8 +119,13 @@ export function PedidoForm({
       cache: "no-store",
     });
     if (response.ok) {
+      await fetch("/api/numero-orcamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numero: form.numeroDoOrcamento + 1 }),
+      });
       resetForm();
-      incrementarNumeroDoOrcamento();
+      setField("numeroDoOrcamento", form.numeroDoOrcamento + 1);
     }
   };
 
@@ -207,7 +235,9 @@ export function PedidoForm({
           min={1}
           variant="number"
           value={form.numeroDoOrcamento !== 0 ? form.numeroDoOrcamento : ""}
-          onChange={(e) => atualizarNumeroDoOrcamento(e.target.value)}
+          onChange={(e) =>
+            handleNumeroDoOrcamentoChange(Number(e.target.value))
+          }
           className="el-focus"
         />
         <Input
@@ -216,37 +246,57 @@ export function PedidoForm({
           variant="number"
           value={form.numeroDeParcelas !== 0 ? form.numeroDeParcelas : ""}
           onChange={(e) => {
-            setField("numeroDeParcelas", Number(e.target.value));
+            setField("numeroDeParcelas", convertToNumber(e.target.value));
+            setField("prazos", "");
           }}
           className="el-focus"
         />
       </div>
-      <SelectOrTextInput
-        label="Prazos"
-        options={prazoOptions}
-        value={form.prazos}
-        onSelect={(value) => {
-          setField("prazos", value);
-          setField("vencimentos", gerarVencimentos(value));
-        }}
-        className="el-focus"
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <div
+          className={form.prazos === "À Vista" ? "col-span-1" : "col-span-2"}
+        >
+          <SelectOrTextInput
+            label="Prazos"
+            options={prazoOptions}
+            value={form.prazos}
+            onSelect={(value) => {
+              setField("prazos", value);
+              setField("vencimentos", gerarVencimentos(value));
+            }}
+            className="el-focus"
+          />
+        </div>
+        <div className={form.prazos === "À Vista" ? "block" : "hidden"}>
+          <Input
+            ref={descontoRef}
+            label="Desconto"
+            variant="percentage"
+            value={form.desconto}
+            onChange={(e) =>
+              setField("desconto", convertToNumber(e.target.value))
+            }
+            className={form.prazos === "À Vista" ? "el-focus" : ""}
+            data-ignore-enter={form.prazos !== "À Vista" ? true : undefined}
+          />
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <Input
-          label="Taxa de Frente"
+          label="Frente"
           variant="currency"
-          value={form.taxaDeFrente !== 0 ? form.taxaDeFrente : ""}
+          value={form.taxaDeFrente}
           onChange={(e) => {
-            setField("taxaDeFrente", Number(e.target.value));
+            setField("taxaDeFrente", convertToNumber(e.target.value));
           }}
           className="el-focus"
         />
         <Input
           label="Outras Despesas"
           variant="currency"
-          value={form.outrasDespesas !== 0 ? form.outrasDespesas : ""}
+          value={form.outrasDespesas}
           onChange={(e) => {
-            setField("outrasDespesas", Number(e.target.value));
+            setField("outrasDespesas", convertToNumber(e.target.value));
           }}
           className="el-focus"
         />

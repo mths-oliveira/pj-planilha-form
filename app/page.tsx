@@ -1,20 +1,28 @@
 import { PedidoForm } from "@/components/forms/PedidoForm";
-import { getClientes, getProdutos, getRepresentantes } from "@/lib/sheets";
+import {
+  getClientes,
+  getNumeroDoOrcamento,
+  getProdutos,
+  getRepresentantes,
+} from "@/lib/sheets";
 
 export const dynamic = "force-dynamic";
-
+export const revalidate = 60; // revalida a cada 60 segundos em vez de toda requisição
 export default async function Home() {
-  const clientes = await getClientes();
-  const representantes = await getRepresentantes();
-  const produtos = await getProdutos();
+  const [clientes, representantes, produtos, numeroDoOrcamento] =
+    await Promise.all([
+      getClientes(),
+      getRepresentantes(),
+      getProdutos(),
+      getNumeroDoOrcamento(),
+    ]);
 
   return (
-    <main>
-      <PedidoForm
-        clientes={clientes}
-        representantes={representantes}
-        produtos={produtos}
-      />
-    </main>
+    <PedidoForm
+      clientes={clientes}
+      representantes={representantes}
+      produtos={produtos}
+      numeroDoOrcamento={numeroDoOrcamento}
+    />
   );
 }

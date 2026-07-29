@@ -14,6 +14,7 @@ export interface DadosDoOrcamentoNoSistema {
   prazos: string;
   formaDePagamento: string;
   vencimentos: string;
+  desconto: number;
 }
 
 export interface DadosDoOrcamentoNaPlanilha {
@@ -34,4 +35,5 @@ export interface DadosDoOrcamentoNaPlanilha {
   taxaDeFrente: string;
   outrasDespesas: string;
   totalAPagar: string;
+  desconto: string;
 }
