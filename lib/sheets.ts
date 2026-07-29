@@ -123,7 +123,6 @@ export async function salvarOrcamentoNaPlanilha(
 
   const data = [
     { range: `${abaNome}!E5`, values: [[orcamento.data]] },
-    { range: `${abaNome}!E6`, values: [[orcamento.numeroDoOrcamento]] },
     { range: `${abaNome}!E7`, values: [[orcamento.cliente?.id || ""]] },
     { range: `${abaNome}!E8`, values: [[orcamento.representante?.id || ""]] },
 

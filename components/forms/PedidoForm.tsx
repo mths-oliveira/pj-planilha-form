@@ -49,6 +49,19 @@ export function PedidoForm({
   const [form, setForm] = useState<DadosDoOrcamentoForm>(initialState);
   const [refs, setRefs] = useState<HTMLElement[]>([]);
   const descontoRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
+  const [mensagemErro, setMensagemErro] = useState<string | null>(null);
+  function validarForm(): string | null {
+    if (!form.cliente) return "Selecione um cliente.";
+    if (!form.representante) return "Selecione um representante.";
+    if (form.produtos.length === 0) return "Adicione pelo menos um produto.";
+    if (!form.numeroDoOrcamento) return "Informe o número do orçamento.";
+    if (!form.numeroDeParcelas) return "Informe o número de parcelas.";
+    if (!form.prazos) return "Informe o prazo.";
+    if (!form.formaDePagamento) return "Informe a forma de pagamento.";
+    return null;
+  }
 
   // foca o desconto quando À Vista for selecionado
   useEffect(() => {
@@ -112,23 +125,40 @@ export function PedidoForm({
   }, [numeroDoOrcamento]);
 
   const handleSubmit = async () => {
-    const response = await fetch("/api/sheets", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-      cache: "no-store",
-    });
-    if (response.ok) {
-      await fetch("/api/numero-orcamento", {
+    const erro = validarForm();
+    if (erro) {
+      setMensagemErro(erro);
+      return;
+    }
+
+    setMensagemErro(null);
+    setLoading(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/sheets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numero: form.numeroDoOrcamento + 1 }),
+        body: JSON.stringify(form),
+        cache: "no-store",
       });
-      resetForm();
-      setField("numeroDoOrcamento", form.numeroDoOrcamento + 1);
+
+      if (response.ok) {
+        const proximoNumero = form.numeroDoOrcamento + 1;
+
+        resetForm();
+        setField("numeroDoOrcamento", proximoNumero); // só atualiza o form
+        setFeedback("success");
+        setTimeout(() => setFeedback(null), 3000);
+      } else {
+        setFeedback("error");
+      }
+    } catch {
+      setFeedback("error");
+    } finally {
+      setLoading(false);
     }
   };
-
   function resetForm() {
     setForm({
       ...initialState,
@@ -325,11 +355,56 @@ export function PedidoForm({
       >
         Limpar Formulario
       </p>
+      {feedback === "success" && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+          <span>✔</span>
+          <span>Orçamento enviado com sucesso!</span>
+        </div>
+      )}
+
+      {feedback === "error" && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <span>✕</span>
+          <span>Algo deu errado. Verifique os campos e tente novamente.</span>
+        </div>
+      )}
+      {mensagemErro && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <span>✕</span>
+          <span>{mensagemErro}</span>
+        </div>
+      )}
       <button
         onClick={handleSubmit}
-        className="el-focus w-full h-12 bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
+        disabled={loading}
+        className="el-focus w-full h-12 bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
       >
-        Enviar Pedido
+        {loading ? (
+          <>
+            <svg
+              className="animate-spin h-5 w-5 text-white"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8z"
+              />
+            </svg>
+            Enviando...
+          </>
+        ) : (
+          "Enviar Pedido"
+        )}
       </button>
     </div>
   );
