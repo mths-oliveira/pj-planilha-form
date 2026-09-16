@@ -47,7 +47,7 @@ export function PedidoForm({
     desconto: 0,
   };
   const [form, setForm] = useState<DadosDoOrcamentoForm>(initialState);
-  const [refs, setRefs] = useState<HTMLElement[]>([]);
+  const refs = useRef<HTMLElement[]>([]);
   const descontoRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
@@ -71,10 +71,11 @@ export function PedidoForm({
   }, [form.prazos]);
 
   useEffect(() => {
-    refs.length = 0;
-    setRefs(() =>
-      Array.from(document.querySelectorAll<HTMLElement>(".el-focus")),
-    );
+    setTimeout(() => {
+      refs.current = Array.from(
+        document.querySelectorAll<HTMLElement>(".el-focus"),
+      );
+    }, 50);
   }, [form.prazos]);
 
   async function handleNumeroDoOrcamentoChange(valor: number) {
@@ -282,35 +283,31 @@ export function PedidoForm({
           className="el-focus"
         />
       </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <div
-          className={form.prazos === "À Vista" ? "col-span-1" : "col-span-2"}
-        >
-          <SelectOrTextInput
-            label="Prazos"
-            options={prazoOptions}
-            value={form.prazos}
-            onSelect={(value) => {
-              setField("prazos", value);
-              setField("vencimentos", gerarVencimentos(value));
-            }}
-            className="el-focus"
-          />
-        </div>
-        <div className={form.prazos === "À Vista" ? "block" : "hidden"}>
-          <Input
-            ref={descontoRef}
-            label="Desconto"
-            variant="percentage"
-            value={form.desconto}
-            onChange={(e) =>
-              setField("desconto", convertToNumber(e.target.value))
-            }
-            className={form.prazos === "À Vista" ? "el-focus" : ""}
-            data-ignore-enter={form.prazos !== "À Vista" ? true : undefined}
-          />
-        </div>
+        <SelectOrTextInput
+          label="Prazos"
+          options={prazoOptions}
+          value={form.prazos}
+          onSelect={(value) => {
+            setField("prazos", value);
+            setField("vencimentos", gerarVencimentos(value));
+          }}
+          className="el-focus"
+        />
+        <Input
+          ref={descontoRef}
+          label="Desconto"
+          variant="percentage"
+          value={form.desconto}
+          onChange={(e) =>
+            setField("desconto", convertToNumber(e.target.value))
+          }
+          className={form.prazos === "À Vista" ? "el-focus" : ""}
+          data-ignore-enter={form.prazos !== "À Vista" ? true : undefined}
+        />
       </div>
+
       <div className="grid grid-cols-2 gap-3">
         <Input
           label="Frente"

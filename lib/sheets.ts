@@ -112,9 +112,9 @@ export async function salvarOrcamentoNaPlanilha(
 
   const sheets = google.sheets({ version: "v4", auth });
 
-  const linhasProdutos = Array.from({ length: 10 }, () => ["", "", ""]);
+  const linhasProdutos = Array.from({ length: 120 }, () => ["", "", ""]);
 
-  orcamento.produtos.slice(0, 10).forEach((produto, index) => {
+  orcamento.produtos.slice(0, 120).forEach((produto, index) => {
     linhasProdutos[index][0] = produto.ref || "";
     linhasProdutos[index][2] = String(
       produto.quantidade > 0 ? produto.quantidade : 1,
@@ -126,18 +126,18 @@ export async function salvarOrcamentoNaPlanilha(
     { range: `${abaNome}!E7`, values: [[orcamento.cliente?.id || ""]] },
     { range: `${abaNome}!E8`, values: [[orcamento.representante?.id || ""]] },
 
-    { range: `${abaNome}!A13:C22`, values: linhasProdutos },
+    { range: `${abaNome}!A13:C132`, values: linhasProdutos },
 
-    { range: `${abaNome}!B25`, values: [[orcamento.numeroDeParcelas]] },
-    { range: `${abaNome}!B26`, values: [[orcamento.prazos]] },
-    { range: `${abaNome}!B27`, values: [[orcamento.vencimentos]] },
-    { range: `${abaNome}!B29`, values: [[orcamento.formaDePagamento]] },
+    { range: `${abaNome}!B135`, values: [[orcamento.numeroDeParcelas]] },
+    { range: `${abaNome}!B136`, values: [[orcamento.prazos]] },
+    { range: `${abaNome}!B137`, values: [[orcamento.vencimentos]] },
+    { range: `${abaNome}!B139`, values: [[orcamento.formaDePagamento]] },
     {
-      range: `${abaNome}!E26`,
+      range: `${abaNome}!E136`,
       values: [[orcamento.desconto ? `${orcamento.desconto}%` : ""]],
     },
-    { range: `${abaNome}!E28`, values: [[orcamento.taxaDeFrente]] },
-    { range: `${abaNome}!E29`, values: [[orcamento.outrasDespesas]] },
+    { range: `${abaNome}!E138`, values: [[orcamento.taxaDeFrente]] },
+    { range: `${abaNome}!E139`, values: [[orcamento.outrasDespesas]] },
   ];
 
   try {
@@ -157,11 +157,16 @@ export async function salvarOrcamentoNaPlanilha(
   }
 }
 
+export async function ajustarLinhasPlanilha(): Promise<void> {
+  await fetch(process.env.APPS_SCRIPT_URL!, { method: "POST" });
+}
+
 export async function getNumeroDoOrcamento(): Promise<number> {
   const client = createGoogleClient();
   const rows = await client.getByRange("'ORCAMENTO'!E6");
   return Number(rows[0]?.[0] || 1);
 }
+
 export async function atualizarNumeroDoOrcamento(
   numero: number,
 ): Promise<void> {
