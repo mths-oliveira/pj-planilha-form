@@ -11,6 +11,38 @@ interface SelectOrTextInputProps {
   className?: string;
 }
 
+export function normalizarPrazo(valor: string): string {
+  const v = valor
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (["a vista", "0", "hoje", "avista"].includes(v)) return "À VISTA";
+  return valor.trim();
+}
+
+export function validarPrazo(
+  prazo: string,
+  numeroDeParcelas: number,
+): string | null {
+  if (prazo === "À VISTA") {
+    if (numeroDeParcelas !== 1)
+      return `Prazo "À VISTA" só é válido para 1 parcela. Você tem ${numeroDeParcelas} parcela(s).`;
+    return null;
+  }
+
+  const partes = prazo.split("/");
+  if (partes.length !== numeroDeParcelas) {
+    return `O prazo "${prazo}" tem ${partes.length} data(s), mas o número de parcelas é ${numeroDeParcelas}.`;
+  }
+
+  const todosNumeros = partes.every((p) => !isNaN(Number(p.trim())));
+  if (!todosNumeros)
+    return `O prazo "${prazo}" contém valores inválidos. Use apenas números separados por /.`;
+
+  return null;
+}
+
 export function SelectOrTextInput({
   options,
   onSelect,

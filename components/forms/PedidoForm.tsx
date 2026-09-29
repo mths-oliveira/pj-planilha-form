@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { FilteredInput } from "@/components/ui/FilteredInput";
 import { Cliente, DadosDoOrcamentoNoSistema, Representante } from "@/types";
 import { Input } from "../ui/input";
-import { SelectOrTextInput } from "../ui/selectOrTextInput";
+import {
+  normalizarPrazo,
+  SelectOrTextInput,
+  validarPrazo,
+} from "../ui/selectOrTextInput";
 import { ProductSelector } from "../ui/ProductSelector";
 import { Produto } from "@/types/produto";
 import { ProdutoSelecionado } from "@/lib/sheets";
@@ -167,39 +171,46 @@ export function PedidoForm({
     });
   }
 
-  function gerarPrazo(parcelas: number, intervalo: number) {
-    if (parcelas <= 1) return intervalo === 30 ? "30" : "À Vista";
+  function gerarPrazo(parcelas: number, intervalo: number, offset = 0) {
+    if (parcelas <= 1) {
+      if (offset) return "15";
+      return intervalo === 30 ? "30" : "À Vista";
+    }
     let prazo = "";
     for (let i = 1; i <= parcelas; i++) {
-      const dia = intervalo * i;
+      const dia = intervalo * i + offset;
       prazo += i === parcelas ? `${dia}` : `${dia}/`;
     }
     return prazo;
   }
 
   const prazoOptions = [
-    gerarPrazo(form.numeroDeParcelas, 30),
     gerarPrazo(form.numeroDeParcelas, 15),
+    gerarPrazo(form.numeroDeParcelas, 15, 15),
+    gerarPrazo(form.numeroDeParcelas, 30),
   ];
 
   function gerarVencimentos(prazosString: string): string {
     const hoje = new Date().toLocaleDateString("pt-BR");
-    if (!prazosString || prazosString.trim() === "") return hoje;
+    if (
+      !prazosString ||
+      prazosString.trim() === "" ||
+      prazosString === "À VISTA"
+    )
+      return hoje;
 
     const prazos = prazosString.split("/").map(Number);
 
     const vencimentos = prazos.map((prazo) => {
       if (isNaN(prazo)) return hoje;
-      if (prazo === 0) return hoje;
+      if (prazo === 0) return hoje; // ← 0 = hoje
 
       const dataVencimento = new Date();
-
       if (prazo % 30 === 0) {
         dataVencimento.setMonth(dataVencimento.getMonth() + prazo / 30);
       } else {
         dataVencimento.setDate(dataVencimento.getDate() + prazo);
       }
-
       return dataVencimento.toLocaleDateString("pt-BR");
     });
 
@@ -290,8 +301,12 @@ export function PedidoForm({
           options={prazoOptions}
           value={form.prazos}
           onSelect={(value) => {
-            setField("prazos", value);
-            setField("vencimentos", gerarVencimentos(value));
+            const normalizado = normalizarPrazo(value);
+            const erro = validarPrazo(normalizado, form.numeroDeParcelas);
+            if (erro) setMensagemErro(erro);
+            else setMensagemErro(null);
+            setField("prazos", normalizado);
+            setField("vencimentos", gerarVencimentos(normalizado));
           }}
           className="el-focus"
         />
