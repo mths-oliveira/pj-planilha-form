@@ -6,7 +6,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     await salvarOrcamentoNaPlanilha(body);
-    await salvarOrcamentoNaPlanilha(body);
     await ajustarLinhasPlanilha();
     return NextResponse.json({ success: true });
   } catch (error) {
